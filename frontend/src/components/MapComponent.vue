@@ -1,15 +1,18 @@
 <template>
   <div class="map-container">
-    <div>
-      <input type="text" v-model="searchQuery" placeholder="Arama yapin" @input="handleSearch" class="search-input" />
-    </div>
+    <input
+      type="text"
+      v-model="searchQuery"
+      placeholder="Arama yapin"
+      @input="handleSearch"
+      class="search-input"
+    />
     <div ref="map" class="map"></div>
   </div>
 </template>
 
-
 <script>
-/* global google */  // ESLint'e google nesnesinin global bir deï¿½iï¿½ken olduï¿½unu belirtir
+/* global google */
 export default {
   name: 'MapComponent',
   data() {
@@ -17,14 +20,14 @@ export default {
       map: null,
       mapLoaded: false,
       userLocationMarker: null,
-      searchQuery: ''
+      searchQuery: '',
     };
   },
   mounted() {
     this.loadMapScript();
   },
   methods: {
-     loadMapScript() {
+    loadMapScript() {
       if (!this.mapLoaded && !window.google) {
         const script = document.createElement('script');
         script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyC3EtWIuDUa-5yV6f13gUdZPJtQS7H2QJA&libraries=places&callback=initMapCallback`;
@@ -49,16 +52,19 @@ export default {
         this.showUserLocation(); 
         this.$emit('map-loaded', true); 
         this.createAutocomplete();
+        this.map.addListener('click', (e) => {
+        this.placeMarker(e.latLng);
+      });
       }
     },
     createAutocomplete() {
-      // Bu metot, initMap metodundan sonra ve arama input elementi mevcut olduktan sonra çaðrýlmalýdýr.
+      
       this.autocomplete = new google.maps.places.Autocomplete(
         document.querySelector('.search-input'),
         { types: ['geocode'] }
       );
 
-      // Otomatik tamamlama seçildiðinde haritada göster
+      
       this.autocomplete.addListener('place_changed', () => {
         const place = this.autocomplete.getPlace();
         if (!place.geometry) {
@@ -77,7 +83,19 @@ export default {
         });
       });
     },
-
+    placeMarker(latLng) {
+      
+      if (this.userLocationMarker) {
+        this.userLocationMarker.setMap(null);
+      }
+      
+      this.userLocationMarker = new google.maps.Marker({
+        position: latLng,
+        map: this.map,
+      });
+     
+      this.map.panTo(latLng);
+    },
     showUserLocation() {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition((position) => {
@@ -95,7 +113,7 @@ export default {
           console.error('Error in retrieving your location');
         });
       } else {
-        // Tarayï¿½cï¿½ konum bilgisi saï¿½lamï¿½yorsa
+       
         console.error('Geolocation is not supported by this browser.');
       }
     },
