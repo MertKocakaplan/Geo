@@ -1,35 +1,39 @@
 <template>
   <div class="map-container">
+    <div>
+      <input type="text" v-model="searchQuery" placeholder="Arama yapin" @input="handleSearch" class="search-input" />
+    </div>
     <div ref="map" class="map"></div>
   </div>
 </template>
 
-<script>
-/* global google */  // ESLint'e google nesnesinin global bir deðiþken olduðunu belirtir
 
+<script>
+/* global google */  // ESLint'e google nesnesinin global bir deï¿½iï¿½ken olduï¿½unu belirtir
 export default {
   name: 'MapComponent',
   data() {
     return {
       map: null,
       mapLoaded: false,
-      userLocationMarker: null, // Kullanýcý konumu için iþaretleyici
+      userLocationMarker: null,
+      searchQuery: ''
     };
   },
   mounted() {
     this.loadMapScript();
   },
   methods: {
-    loadMapScript() {
+     loadMapScript() {
       if (!this.mapLoaded && !window.google) {
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyC3EtWIuDUa-5yV6f13gUdZPJtQS7H2QJA&callback=initMapCallback`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyC3EtWIuDUa-5yV6f13gUdZPJtQS7H2QJA&libraries=places&callback=initMapCallback`;
         script.async = true;
         script.defer = true;
         script.onerror = (error) => {
           console.error('Google Maps script could not be loaded.', error);
         };
-        window.initMapCallback = this.initMap;  // Callback fonksiyonu global nesneye ata
+        window.initMapCallback = this.initMap;  
         document.head.appendChild(script);
       } else if (window.google && !this.map) {
         this.initMap();
@@ -42,10 +46,38 @@ export default {
           center: { lat: 40.7128, lng: -74.0060 },
           zoom: 12,
         });
-        this.showUserLocation(); // Kullanýcý konumunu göster
-        this.$emit('map-loaded', true); // Emit an event to signal that the map is loaded
+        this.showUserLocation(); 
+        this.$emit('map-loaded', true); 
+        this.createAutocomplete();
       }
     },
+    createAutocomplete() {
+      // Bu metot, initMap metodundan sonra ve arama input elementi mevcut olduktan sonra çaðrýlmalýdýr.
+      this.autocomplete = new google.maps.places.Autocomplete(
+        document.querySelector('.search-input'),
+        { types: ['geocode'] }
+      );
+
+      // Otomatik tamamlama seçildiðinde haritada göster
+      this.autocomplete.addListener('place_changed', () => {
+        const place = this.autocomplete.getPlace();
+        if (!place.geometry) {
+          console.log("Returned place contains no geometry");
+          return;
+        }
+        const location = place.geometry.location;
+        this.map.setCenter(location);
+        if (this.userLocationMarker) {
+          this.userLocationMarker.setMap(null);
+        }
+        this.userLocationMarker = new google.maps.Marker({
+          position: location,
+          map: this.map,
+          title: place.name
+        });
+      });
+    },
+
     showUserLocation() {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition((position) => {
@@ -63,10 +95,42 @@ export default {
           console.error('Error in retrieving your location');
         });
       } else {
-        // Tarayýcý konum bilgisi saðlamýyorsa
+        // Tarayï¿½cï¿½ konum bilgisi saï¿½lamï¿½yorsa
         console.error('Geolocation is not supported by this browser.');
       }
     },
+    showLocationOnMap(location) {
+      if (this.map) {
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ address: location }, (results, status) => {
+          if (status === 'OK') {
+            const latLng = results[0].geometry.location;
+            this.map.setCenter(latLng);
+            new google.maps.Marker({
+              position: latLng,
+              map: this.map,
+              title: location
+            });
+          } else {
+            console.error('Geocode was not successful for the following reason: ' + status);
+          }
+        });
+      }
+    },
+    handleSearch() {
+      if (this.searchQuery) {
+        this.showLocationOnMap(this.searchQuery);
+      }
+    }
   },
 };
 </script>
+<style>
+.search-input {
+  margin-top: 50px;
+  
+  
+}
+
+
+</style>

@@ -1,12 +1,11 @@
 <template>
  <h2 class="page-title">Haritalar</h2>
   
-  <input type="text" v-model="searchQuery" placeholder="Arama yapın" @change="handleSearch" class="search-input" />
    
   <p id="demo"></p>
   <div id="app">
     <MapComponent @map-loaded="handleMapLoaded" />
-    <div v-if="!mapLoaded">Harita yükleniyor...</div>
+    <div v-if="!mapLoaded">Harita yukleniyor...</div>
   </div>
 </template>
 
@@ -21,7 +20,7 @@ export default {
   data() {
     return {
       mapLoaded: false,
-      searchQuery: 'Arama' // Arama sorgusu için bir veri alanı ekleyin
+      searchQuery: '' 
     };
   },
   methods: {
@@ -29,27 +28,28 @@ export default {
       this.mapLoaded = status;
     },
     handleSearch() {
-      // Arama işlemleri burada gerçekleştirilebilir
+     
       console.log('Aranan: ', this.searchQuery);
-       // Burada Google APIs veya diğer servislerde bu arama sorgusunu kullanabilirsiniz
-    // Örneğin, Google APIs ile bir yer araması yapabilirsiniz
-    // const aramaSonucu = GoogleAPI.ara(this.searchQuery);
-    }
+      
+      const location = this.searchQuery;
+
+
+this.$refs.mapComponent.showLocationOnMap(location);   }
   }
 }
 </script>
 
 <style>
 body {
-  /* Arka plana PNG resmi ekleme */
-  background-image: url('./assets/ArkaPlan.jpeg'); /* PNG dosyasının yolunu buraya ekleyin */
-  background-size: cover; /* Resmin ekran boyutuna sığması için */
-  /* İstenilen diğer stiller */
+ 
+  background-image: url('./assets/ArkaPlan.jpeg'); 
+  background-size: cover; 
+ 
   .search-input {
-  font-size: 20px; /* Font büyüklüğü */
-  width: 300px; /* Genişlik */
-  height: 40px; /* Yükseklik */
-  /* İstenilen diğer stiller */
+  font-size: 20px; 
+  width: 300px;
+  height: 40px; 
+
   border-radius: 10px;
 }}
 #app {
@@ -61,12 +61,12 @@ body {
   margin-top: 60px;
 }
 .page-title {
-  font-size: 40px; /* Başlık font büyüklüğü */
+  font-size: 40px; 
   font-weight: bold; 
 }
 
 .map-container .map {
-  height: 600px; /* Or your preferred size */
+  height: 600px; 
   width: 100%;
 }
 </style>
