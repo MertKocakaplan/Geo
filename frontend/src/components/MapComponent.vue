@@ -8,11 +8,18 @@
       class="search-input"
     />
     <div ref="map" class="map"></div>
+
+    <!-- Rota bilgisini göstereceðiniz yer -->
+    <div id="travelInfo"></div>
+    <div v-if="weatherInfo" class="weather-info">
+  {{ displayWeatherInfo }}
+</div>
   </div>
 </template>
 
 <script>
 /* global google */
+import axios from 'axios';
 export default {
   name: 'MapComponent',
   data() {
@@ -23,6 +30,7 @@ export default {
       searchQuery: '',
       directionsService: null,
       directionsRenderer: null,
+      weatherInfo: null,
     };
   },
   mounted() {
@@ -63,42 +71,57 @@ export default {
       this.calculateAndDisplayRoute(event.latLng);
     });
   }},
-  calculateAndDisplayRoute(destination) {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        const start = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-        this.directionsService.route({
-          origin: start,
-          destination: destination,
-          travelMode: google.maps.TravelMode.DRIVING,
-          // Trafik bilgisini rotaya dahil edin
-          drivingOptions: {
-            departureTime: new Date(/* now, or future date */),
-            trafficModel: 'pessimistic'
-          }
-        }, (response, status) => {
-          if (status === 'OK') {
-            this.directionsRenderer.setDirections(response);
-            // Yol bilgisi mesajýný göster
-            const route = response.routes[0].legs[0];
-            this.showRouteInfo(route.duration.text, route.distance.text);
-          } else {
-            window.alert('Directions request failed due to ' + status);
-          }
-        });
-      }, () => {
-        console.error('Error in retrieving your location');
-      });
-    } else {
-      console.error('Geolocation is not supported by this browser.');
-    }
-  },
+  async calculateAndDisplayRoute(destination) {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const start = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+      this.directionsService.route({
+        origin: start,
+        destination: destination,
+        travelMode: google.maps.TravelMode.DRIVING,
+      }, async (response, status) => {
+        if (status === 'OK') {
+          this.directionsRenderer.setDirections(response);
+          const route = response.routes[0].legs[0];
+          this.showRouteInfo(route.duration.text, route.distance.text);
 
-  // Rota bilgisini gösteren metod
+          // Hava durumu bilgisini al
+          try {
+            const latLng = {
+              lat: destination.lat(),
+              lng: destination.lng()
+            };
+            await this.getCityNameFromLatLng(latLng.lat, latLng.lng);
+          } catch (error) {
+            console.error('Error getting weather data:', error);
+          }
+        } else {
+          window.alert('Directions request failed due to ' + status);
+        }
+      });
+    }, () => {
+      console.error('Error in retrieving your location');
+    });
+  } else {
+    console.error('Geolocation is not supported by this browser.');
+  }
+},
+
+
+  
   showRouteInfo(duration, distance) {
-    // Bu bilgiyi kullanýcý arayüzünde nasýl göstereceðinize baðlý olarak deðiþiklik yapýn
-    alert(`Estimated travel time: ${duration} \nTotal distance: ${distance}`);
-  },
+  
+  // Bilgiyi HTML üzerinde göster
+  const travelInfoDiv = document.getElementById('travelInfo');
+  if (travelInfoDiv) {
+    travelInfoDiv.innerHTML = `
+      <p>Estimated travel time: ${duration}</p>
+      <p>Total distance: ${distance}</p>
+    `;
+  } else {
+    console.error('The element with ID "travelInfo" was not found.');
+  }
+},
     createAutocomplete() {
       
       this.autocomplete = new google.maps.places.Autocomplete(
@@ -173,12 +196,59 @@ export default {
         });
       }
     },
+
+    getCityNameFromLatLng(lat, lng) {
+  const geocoder = new google.maps.Geocoder();
+  const latLng = { lat, lng };
+  console.log(`Geocoding for: ${lat}, ${lng}`); // Hata ayýklama için
+
+  geocoder.geocode({ location: latLng }, async (results, status) => {
+    console.log('Geocoder status:', status); // Hata ayýklama için
+    if (status === 'OK') {
+        if (results[0]) {
+          const city = results[0].address_components.find(component =>
+            component.types.includes('locality') || component.types.includes('administrative_area_level_1')
+          ).long_name;
+          await this.getWeather(city);
+        } else {
+          console.log('No results found');
+        }
+      } else {
+        console.log('Geocoder failed due to: ' + status);
+      }
+    });
+  },
+
+  async getWeather(city) {
+  try {
+    console.log(`Fetching weather for: ${city}`); // Hata ayýklama için
+    const response = await axios.get(`http://localhost:3000/hava-durumu?konum=${city}`);
+    console.log('Weather data received:', response.data); // Hata ayýklama için
+    this.weatherInfo = response.data;
+  } catch (error) {
+    console.error('Error fetching weather data:', error); // Hata ayýklama için
+  }
+},
+
+
     handleSearch() {
       if (this.searchQuery) {
         this.showLocationOnMap(this.searchQuery);
       }
     }
   },
+  computed: {
+  displayWeatherInfo() {
+    if (this.weatherInfo && this.weatherInfo.main && this.weatherInfo.weather) {
+      const temp = this.weatherInfo.main.temp;
+      const description = this.weatherInfo.weather[0].description;
+      return `Sicaklik: ${temp} Derece, Hava Durumu: ${description}`;
+    } else {
+      // Veri henüz yüklenmediyse veya tanýmlý deðilse
+      return 'Hava durumu bilgisi yükleniyor...';
+    }
+  }
+},
 };
 </script>
 <style>
@@ -187,6 +257,10 @@ export default {
   
   
 }
-
-
+.weather-info {
+  margin-top: 10px;
+  padding: 5px;
+  background-color: #ffffff;
+  border-radius: 5px;
+}
 </style>
