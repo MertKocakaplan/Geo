@@ -21,6 +21,8 @@ export default {
       mapLoaded: false,
       userLocationMarker: null,
       searchQuery: '',
+      directionsService: null,
+      directionsRenderer: null,
     };
   },
   mounted() {
@@ -52,8 +54,35 @@ export default {
         this.showUserLocation(); 
         this.$emit('map-loaded', true); 
         this.createAutocomplete();
-      }
-    },
+        this.directionsService = new google.maps.DirectionsService();
+        this.directionsRenderer = new google.maps.DirectionsRenderer();
+        this.directionsRenderer.setMap(this.map);
+        this.map.addListener('click', (event) => {
+      this.calculateAndDisplayRoute(event.latLng);
+    });
+  }},
+  calculateAndDisplayRoute(destination) {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        const start = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+        this.directionsService.route({
+          origin: start,
+          destination: destination,
+          travelMode: google.maps.TravelMode.DRIVING
+        }, (response, status) => {
+          if (status === 'OK') {
+            this.directionsRenderer.setDirections(response);
+          } else {
+            window.alert('Directions request failed due to ' + status);
+          }
+        });
+      }, () => {
+        console.error('Error in retrieving your location');
+      });
+    } else {
+      console.error('Geolocation is not supported by this browser.');
+    }
+  },
     createAutocomplete() {
       
       this.autocomplete = new google.maps.places.Autocomplete(
