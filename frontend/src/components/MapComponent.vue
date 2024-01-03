@@ -57,6 +57,8 @@ export default {
         this.directionsService = new google.maps.DirectionsService();
         this.directionsRenderer = new google.maps.DirectionsRenderer();
         this.directionsRenderer.setMap(this.map);
+        const trafficLayer = new google.maps.TrafficLayer();
+        trafficLayer.setMap(this.map);
         this.map.addListener('click', (event) => {
       this.calculateAndDisplayRoute(event.latLng);
     });
@@ -68,10 +70,18 @@ export default {
         this.directionsService.route({
           origin: start,
           destination: destination,
-          travelMode: google.maps.TravelMode.DRIVING
+          travelMode: google.maps.TravelMode.DRIVING,
+          // Trafik bilgisini rotaya dahil edin
+          drivingOptions: {
+            departureTime: new Date(/* now, or future date */),
+            trafficModel: 'pessimistic'
+          }
         }, (response, status) => {
           if (status === 'OK') {
             this.directionsRenderer.setDirections(response);
+            // Yol bilgisi mesajýný göster
+            const route = response.routes[0].legs[0];
+            this.showRouteInfo(route.duration.text, route.distance.text);
           } else {
             window.alert('Directions request failed due to ' + status);
           }
@@ -82,6 +92,12 @@ export default {
     } else {
       console.error('Geolocation is not supported by this browser.');
     }
+  },
+
+  // Rota bilgisini gösteren metod
+  showRouteInfo(duration, distance) {
+    // Bu bilgiyi kullanýcý arayüzünde nasýl göstereceðinize baðlý olarak deðiþiklik yapýn
+    alert(`Estimated travel time: ${duration} \nTotal distance: ${distance}`);
   },
     createAutocomplete() {
       
