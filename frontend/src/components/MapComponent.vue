@@ -52,9 +52,6 @@ export default {
         this.showUserLocation(); 
         this.$emit('map-loaded', true); 
         this.createAutocomplete();
-        this.map.addListener('click', (e) => {
-        this.placeMarker(e.latLng);
-      });
       }
     },
     createAutocomplete() {
@@ -124,11 +121,7 @@ export default {
           if (status === 'OK') {
             const latLng = results[0].geometry.location;
             this.map.setCenter(latLng);
-            new google.maps.Marker({
-              position: latLng,
-              map: this.map,
-              title: location
-            });
+
           } else {
             console.error('Geocode was not successful for the following reason: ' + status);
           }
