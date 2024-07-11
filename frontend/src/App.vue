@@ -1,5 +1,5 @@
 <template>
- <h2 class="page-title">Haritalar</h2>
+ <h2 class="page-title">Project Maps</h2>
   
    
   <p id="demo"></p>
@@ -42,7 +42,7 @@ this.$refs.mapComponent.showLocationOnMap(location);   }
 <style>
 body {
  
-  background-image: url('./assets/ArkaPlan.jpeg'); 
+  background-image: url('./assets/ArkaPlan.jpg'); 
   background-size: cover; 
  
   .search-input {
